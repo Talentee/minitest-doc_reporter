@@ -3,16 +3,14 @@ require 'minitest/autorun'
 require 'ansi/code'
 
 module Minitest
-  module DocReporter
-    require "minitest/doc_reporter/version"
+  module Documenter
+    require "minitest/documenter/version"
 
-    class DocReporter < AbstractReporter
+    class Documenter < AbstractReporter
       include ANSI::Code
 
       attr_reader :io, :options, :results
-
-      attr_accessor :start_time, :total_time, :failures, :errors, :skips, :count, 
-        :results
+      attr_accessor :start_time, :total_time, :failures, :errors, :skips, :count, :results
 
       def initialize(options = {})
         @io = io
