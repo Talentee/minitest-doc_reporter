@@ -28,11 +28,12 @@ module Minitest
       end
 
       def record(result)
-        puts format_header(result)
+        puts_header(result)
         puts format_result(result)
-        puts
-
-        puts failure_info(result) unless result.passed?
+        unless result.passed?
+          puts
+          puts failure_info(result)
+        end
 
         update_statistics(result)
       end
@@ -116,6 +117,15 @@ module Minitest
         verb = result.name.split[0].split("_").last
         phrase = result.name.split[1..-1].join " "
         "#{verb} #{phrase}"
+      end
+
+      def puts_header(result)
+        current_header = format_header(result)
+        if @prevous_header != current_header
+          @prevous_header = current_header
+          puts
+          puts current_header
+        end
       end
 
       def format_header(result)
