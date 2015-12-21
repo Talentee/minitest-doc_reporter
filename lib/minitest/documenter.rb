@@ -120,16 +120,26 @@ module Minitest
       end
 
       def puts_header(result)
-        current_header = format_header(result)
+        current_header = header(result)
         if @prevous_header != current_header
           @prevous_header = current_header
           puts
-          puts current_header
+          puts format_header(current_header)
         end
       end
 
-      def format_header(result)
-        ANSI.bold(result.class)
+      def format_header(header)
+        header.gsub!('::.', '.')
+        header.gsub!('::#', '#')
+        header.gsub!('::(', ' (')
+        header.gsub!(/\:\:([a-z])/, ' \1')
+        klass, method = header.split(/(?=\.|\#)/, 2)
+        ANSI.bold(header)
+        ANSI.bold(klass) + ANSI.white(method)
+      end
+
+      def header(result)
+        result.class.to_s
       end
 
       def format_tests_run_count(count, total_time)
