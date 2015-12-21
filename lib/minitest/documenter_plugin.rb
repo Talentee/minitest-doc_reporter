@@ -7,7 +7,7 @@ module Minitest
   end
 
   def self.plugin_documenter_init(options)
-    self.reporter.reporters = []
+    self.reporter.reporters.reject! { |reporter| reporter.is_a? ProgressReporter }
     self.reporter << Documenter::Documenter.new(options)
   end
 end
