@@ -39,7 +39,6 @@ module Minitest
         update_statistics(result)
       end
 
-
       def report
         super
 
@@ -95,7 +94,7 @@ module Minitest
 
       #formatters
       def pad(str, amount = 2)
-        " " * amount + str
+        ' ' * amount + str
       end
 
       LOCAL_BACKTRACE_LINE = /\A(\S+\:\d+)\:in/
