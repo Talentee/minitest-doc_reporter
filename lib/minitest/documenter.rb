@@ -20,6 +20,7 @@ module Minitest
         self.skips = 0
         self.count = 0
         self.failures = 0
+        @faulty_lines = Hash.new(0)
       end
 
       def start
@@ -42,27 +43,37 @@ module Minitest
       def report
         super
 
-        aggregate = self.results.group_by { |r| r.failure.class }
+        aggregate = results.group_by { |r| r.failure.class }
         aggregate.default = [] # dumb. group_by should provide this
 
-        self.failures   = aggregate[Assertion].size
-        self.errors     = aggregate[UnexpectedError].size
-        self.skips      = aggregate[Skip].size
+        self.failures = aggregate[Assertion].size
+        self.errors = aggregate[UnexpectedError].size
+        self.skips = aggregate[Skip].size
 
         puts
         puts format_tests_run_count(count, total_time)
         puts statistics
         puts
+        print_faulty_lines if @faulty_lines.any?
       end
 
       private
+
+      def print_faulty_lines
+        # sorting by negative count so the highest number comes up first
+        sorted = @faulty_lines.sort_by { |line, count| [-count, line] }
+        puts "Top backtrace lines from our code:"
+        sorted.each do |line_and_count|
+          puts [line_and_count.last, line_and_count.first].join(":\t")
+        end
+      end
 
       def failure_info(result)
         if result.error?
           puts pad(format_error_info(result))
           puts
         elsif result.failure
-          result.failure.to_s.each_line {|l| puts pad(l)}
+          result.failure.to_s.each_line { |l| puts pad(l) }
           puts
         end
       end
@@ -87,17 +98,31 @@ module Minitest
         " " * amount + str
       end
 
-      def format_error_info(result)
-        e = result.failure.exception
-        bt = Minitest.filter_backtrace e.backtrace
-        ANSI.bold {e.class.to_s} + "\n" + pad(e.message.to_s) + "\n" + \
-            format_backtrace(bt)
+      LOCAL_BACKTRACE_LINE = /\A(\S+\:\d+)\:in/
+      def highlight_local_backtrace_line(line)
+        if LOCAL_BACKTRACE_LINE =~ line
+          ANSI.white(line)
+        else
+          line
+        end
       end
 
-      def format_backtrace(bt)
-        output = ""
-        bt.each {|l| output << pad(l)}
-        output
+      def store_error_line(backtrace)
+        local_line = backtrace.detect { |line| LOCAL_BACKTRACE_LINE =~ line }
+        return if local_line.nil?
+        line_and_number = LOCAL_BACKTRACE_LINE.match(local_line)[1]
+        @faulty_lines[line_and_number] += 1
+      end
+
+      def format_error_info(result)
+        e = result.failure.exception
+        backtrace = Minitest.filter_backtrace e.backtrace
+        store_error_line(backtrace)
+        ANSI.bold { e.class.to_s } + "\n" + pad(e.message.to_s) + "\n" + format_backtrace(backtrace)
+      end
+
+      def format_backtrace(backtrace)
+        backtrace.map { |l| pad(highlight_local_backtrace_line(l)) }.join("\n")
       end
 
       def format_result(result)
@@ -105,9 +130,9 @@ module Minitest
         name = format_test_description result
 
         if result.passed?
-          output =  ANSI.green {name}
+          output =  ANSI.green { name }
         else
-          output = ANSI.red {name}
+          output = ANSI.red { name }
         end
 
         pad output
